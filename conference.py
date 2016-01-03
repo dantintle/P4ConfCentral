@@ -416,21 +416,18 @@ class ConferenceApi(remote.Service):
         for field in sf.all_fields():
             if hasattr(speaker, field.name):
                 setattr(sf, field.name, getattr(speaker, field.name))
-            elif field.name == "websafeKey":
-                setattr(sf, field.name, speaker.key.urlsafe())
         sf.check_initialized()
         return sf
 
-    @endpoints.method(SPEAKER_POST_REQUEST, BooleanMessage, path='speakers/add', http_method='POST', name='addSpeaker')
+    @endpoints.method(SpeakerForm, SpeakerForm, path='speakers/add', http_method='POST', name='addSpeaker')
     def addSpeaker(self, request):
         """Get profile from user, take field info for all fields, give key and put into datastore"""
         prof=self._getProfileFromUser()
         data={field.name:getattr(request, field.name) for field in request.all_fields()}
-        s_id = Speaker.allocate_ids(size=1)[0]
-        speaker_key = ndb.Key(Speaker, s_id)
-        data['key'] = speaker_key
-        Speaker(**data).put()
-        return BooleanMessage(data=True)
+        del data['websafeKey']
+        speaker=Speaker(**data)
+        speaker.put()
+        return self._copySpeakerToForm(speaker)
 
     @endpoints.method(message_types.VoidMessage, SpeakerForms, path = 'speakers/get', http_method = 'POST', name = 'getSpeakers')
     def getSpeakers(self, request):

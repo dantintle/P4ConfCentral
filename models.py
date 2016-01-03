@@ -121,7 +121,7 @@ class Session(ndb.Model):
 class SessionForm(messages.Message):
     session_name = messages.StringField(1)
     highlights = messages.StringField(2)
-    duration = messages.StringField(3)
+    duration = messages.IntegerField(3)
     typeOfSession = messages.StringField(4)
     startDate = messages.StringField(5)
     startTime = messages.StringField(6)
