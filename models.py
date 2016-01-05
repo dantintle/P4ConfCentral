@@ -110,15 +110,17 @@ class StringMessage(messages.Message):
     data = messages.StringField(1, required=True)
 
 class Session(ndb.Model):
+    """Session object."""
     session_name = ndb.StringProperty(required=True)
     highlights = ndb.StringProperty()
     speakerKey = ndb.StringProperty()
     duration = ndb.IntegerProperty()
     typeOfSession = ndb.StringProperty()
     startDate = ndb.DateProperty()
-    startTime = ndb.TimeProperty()
+    startTime = ndb.TimeProperty(required=True)
 
 class SessionForm(messages.Message):
+    """Session outbound form message."""
     session_name = messages.StringField(1)
     highlights = messages.StringField(2)
     duration = messages.IntegerField(3)
@@ -132,22 +134,27 @@ class SessionForm(messages.Message):
     websafeSessionKey = messages.StringField(11)
 
 class SessionForms(messages.Message):
+    """Session multiple outbound form message."""
     items = messages.MessageField(SessionForm, 1, repeated=True)
 
 class SessionFormByConference(messages.Message):
+    """Conference key for session form."""
     websafeConferenceKey = messages.StringField(8)
 
 class Speaker(ndb.Model):
+    """Speaker object."""
     speakerName = ndb.StringProperty(required=True)
     speakerInfo = ndb.TextProperty()
     speakerContact = ndb.StringProperty()
 
 class SpeakerForm(messages.Message):
+    """Speaker outbound form message."""
     speakerName = messages.StringField(1)
     speakerInfo = messages.StringField(2)
     speakerContact = messages.StringField(3)
     websafeKey = messages.StringField(4)
 
 class SpeakerForms(messages.Message):
+    """Speaker multiple outbound form messages."""
     items = messages.MessageField(SpeakerForm, 1, repeated=True)
 

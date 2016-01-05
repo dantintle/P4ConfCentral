@@ -110,6 +110,11 @@ SESSION_SPEAKER_GET_REQUEST = endpoints.ResourceContainer(
     speakerKey = messages.StringField(1)
     )
 
+SESSION_TIME_GET_REQUEST = endpoints.ResourceContainer(
+    message_types.VoidMessage,
+    startTime = messages.StringField(1)
+    )
+
 SESSION_GET_REQUEST = endpoints.ResourceContainer(message_types.VoidMessage,
     sessionKey = messages.StringField(1)
     )
@@ -452,6 +457,7 @@ class ConferenceApi(remote.Service):
             )
 
 
+
 # - - - Profile objects - - - - - - - - - - - - - - - - - - -
 
     def _copyProfileToForm(self, prof):
@@ -574,7 +580,7 @@ class ConferenceApi(remote.Service):
         if data['startTime']:
             data['startTime'] = datetime.strptime(data['startTime'], "%H:%M").time()
         if data['duration']:
-            data['duration'] = int(data['duration'])
+            data['duration'] = data['duration']
         else:
             data['duration'] = 0
             #give session key with conference key as parent. allows speaker to be set via speaker key
@@ -605,21 +611,32 @@ class ConferenceApi(remote.Service):
         return SessionForms(items = [self._copySessionToForm(sess, conferenceName, ndb.Key(urlsafe = sess.speakerKey).get().speakerName) for sess in sessions]
             )
 
-    @endpoints.method(SESSION_SPEAKER_GET_REQUEST, SessionForms, path='getSessionsBySpeaker/{speakerKey}/', http_method='GET', name='getSessionsBySpeaker')
+    @endpoints.method(SESSION_SPEAKER_GET_REQUEST, SessionForms, path='getSessionsBySpeaker/{speakerKey}', http_method='GET', name='getSessionsBySpeaker')
     def getSessionsBySpeaker(self, request):
         """Query all sessions which speaker is in, given the speaker key."""
         wssk = request.speakerKey
-        sessions = Session.query().filter(Session.speakerKey == wssk).get()
+        sessions = Session.query().filter(Session.speakerKey == wssk).fetch()
         speaker = ndb.Key(urlsafe=wssk).get()
         return SessionForms(
             items = [self._copySessionToForm(sess, sess.key.parent().get().name, speaker.speakerName) for sess in sessions]
+            )
+
+    @endpoints.method(
+        SESSION_TIME_GET_REQUEST, SessionForms, path='getSessionsByTime', http_metho'GET', name='getSessionsByTime')
+    def getSessionsByTime(self, request):
+        """QUery sessions return those with given start time."""
+        sessions = session.query()
+        startTime = datetime.strptime(request.startTIme[:10] , "%H:%M").time()
+        sessions = sessions.filter(Session.startTime == startTime)
+        return SessionForms(
+            items=[self._copySessionToForm(sess) for sess in sessions]
             )
 
     @endpoints.method(message_types.VoidMessage, SessionForms, path='getWorkshopSessionBeforeSeven', http_method='GET', name='getWorkshopSessionBeforeSeven')
     def getWorkShopSessionBeforeSeven(self, request):
         """Query sessions for all not workshop, before 7 PM."""
         #query session by type not workshop
-        sessions = Session.query(Session.typeOfSession!= "workshop").fetch()
+        sessions = Session.query(Session.typeOfSession!= "workshop")
         validSessions = []
         #for all sessions in query, check time to see if it's before 19:00 (7PM)
         for sess in sessions:
@@ -826,18 +843,19 @@ class ConferenceApi(remote.Service):
         confKey = ndb.Key(urlsafe=conferenceKey)
         query = Session.query(ancestor=confKey)
         sessions = query.filter(Session.speakerKey == speakerKey).count()
+        session_names=','.join([x.name for x in sessions])
         cacheSpeaker = ""
         if sessions > 1:
             sKey = ndb.Key(urlsafe=speakerKey)
             speaker = sKey.get()
-            speakerMsg = '%s %s' % (
-                'The main speaker for this conference is: ', speaker.speakerName)
+            speakerMsg = '%s %s %s' % (
+                'The featured speaker for this conference is: ', speaker.speakerName 'He is speaking in sessions:', session_names)
             memcache.set(MEMCACHE_SPEAKER_KEY, speakerMsg)
-        return speakerMsg
 
-    @endpoints.method(message_types.VoidMessage, StringMessage, path='conference/speaker/get', http_method='GET', name='getSpeaker')
-    def getSpeaker(self, request):
-        """Get speaker from memcache."""
+
+    @endpoints.method(message_types.VoidMessage, StringMessage, path='conference/speaker/get', http_method='GET', name='getFeaturedSpeaker')
+    def getFeaturedSpeaker(self, request):
+        """Get speaker message from memcache."""
         cacheSpeaker = memcache.get(MEMCACHE_SPEAKER_KEY)
         if not cacheSpeaker:
             cacheSpeaker = ""

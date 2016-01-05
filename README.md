@@ -37,7 +37,26 @@ Files:
 - settings.py: has web client to run app
 - utils.py: fetches user ID
 
-Task 3's issue was that the datasotre queries cannot accept a query with two not equal statements. This was resolved by querying the sessions twice. Once for all non-workshop sessions and another time for all sessions before (not after) 7PM.
+Session object:
+- session_name: String property to store session name.
+- highlights: String property to store session description.
+- duration: Integer property to store duration of session.
+- typeOfSession: String property to store session type.
+- startDate: Date property to store session start date.
+- startTime: Time property to store session start time.
+
+Speaker object:
+- speakerName: String property for speaker's name.
+- speakerInfo: Text property to give short bio on speaker.
+- speakerContact: String property to store either phone or email (or both) for speaker.
+
+For Task 1 I created two new objects, for session information and speaker information. Using the conference keys, I linked each session to its respective conference. Speaker is linked by session. This allows for easy querying between conferences, sessions and speakers.
+
+Task 2 was adding the wishlist. addSessionToWishlist adds sessions to user's wishlist. deleteSessionFromWishlist deletes session from user's wishlist. getSessionsInWishlist queries all sessions in user's wishlist.
+
+Task 3 needed additional queries. getSpeakersByConf gets speaker information for a given conference by querying all unique speaker keys related to each session in a given conference. 
+getSessionByTime gets the sessions at a given time.
+Task 3's issue was that the datastore queries cannot accept a query with two not equal statements. This was resolved by querying the sessions twice. The first query checks for all sessions that do not have a "workshop" type of session. The second query goes through the != workshop results and returns all results from the first query that are before 7PM.
 
 For Task 4, I set a SetSpeaker task that updates the memcache with the speaker who has the most sessions in a given conference.
 
