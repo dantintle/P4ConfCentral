@@ -37,17 +37,17 @@ Files:
 - settings.py: has web client to run app
 - utils.py: fetches user ID
 
-Session object:
+Session object, many properties here set as strings as the data shouldn't be too long. Start date and time have properties reflecting their values. Duration, while keeping track of time, uses an integer. More on that below.
 - session_name: String property to store session name.
-- highlights: String property to store session description.
-- duration: Integer property to store duration of session.
+- highlights: String property to store brief session description.
+- duration: Integer property to store duration of session. Storing as number makes it possible to sort/compare by durations.
 - typeOfSession: String property to store session type.
 - startDate: Date property to store session start date.
 - startTime: Time property to store session start time.
 
-Speaker object:
+Speaker object, set as its own object to allow information to be stored and queried related to speaker. Properties explained below. 
 - speakerName: String property for speaker's name.
-- speakerInfo: Text property to give short bio on speaker.
+- speakerInfo: Text property to give short bio on speaker. Chosen because this property stores more data than the string property.
 - speakerContact: String property to store either phone or email (or both) for speaker.
 
 For Task 1 I created two new objects, for session information and speaker information. Using the conference keys, I linked each session to its respective conference. Speaker is linked by session. This allows for easy querying between conferences, sessions and speakers.
