@@ -200,6 +200,8 @@ class ConferenceApi(remote.Service):
         # creation of Conference & return (modified) ConferenceForm
         Conference(**data).put()
         # TODO 2: add confirmation email sending task to queue
+        taskqueue.add(params={'email': user.email(), 'conferenceInfo': repr(request)},
+            url='/tasks/send_confirmation_email')
 
         return request
 
@@ -249,54 +251,8 @@ class ConferenceApi(remote.Service):
             http_method='POST', name='createConference')
     def createConference(self, request):
         """Create new conference."""
-                # preload necessary data items
-        user = endpoints.get_current_user()
-        if not user:
-            raise endpoints.UnauthorizedException('Authorization required')
-        user_id = getUserId(user)
-
-        if not request.name:
-            raise endpoints.BadRequestException("Conference 'name' field required")
-
-        # copy ConferenceForm/ProtoRPC Message into dict
-        data = {field.name: getattr(request, field.name) for field in request.all_fields()}
-        del data['websafeKey']
-        del data['organizerDisplayName']
-
-        # add default values for those missing (both data model & outbound Message)
-        for df in DEFAULTS:
-            if data[df] in (None, []):
-                data[df] = DEFAULTS[df]
-                setattr(request, df, DEFAULTS[df])
-
-        # convert dates from strings to Date objects; set month based on start_date
-        if data['startDate']:
-            data['startDate'] = datetime.strptime(data['startDate'][:10], "%Y-%m-%d").date()
-            data['month'] = data['startDate'].month
-        else:
-            data['month'] = 0
-        if data['endDate']:
-            data['endDate'] = datetime.strptime(data['endDate'][:10], "%Y-%m-%d").date()
-
-        # set seatsAvailable to be same as maxAttendees on creation
-        if data["maxAttendees"] > 0:
-            data["seatsAvailable"] = data["maxAttendees"]
-        # generate Profile Key based on user ID and Conference
-        # ID based on Profile key get Conference key from ID
-        p_key = ndb.Key(Profile, user_id)
-        c_id = Conference.allocate_ids(size=1, parent=p_key)[0]
-        c_key = ndb.Key(Conference, c_id, parent=p_key)
-        data['key'] = c_key
-        data['organizerUserId'] = request.organizerUserId = user_id
-                # Look for TODO 2
-        # create Conference, send email to organizer confirming
-        # creation of Conference & return (modified) ConferenceForm
-        Conference(**data).put()
-        taskqueue.add(params={'email': user.email(),
-            'conferenceInfo': repr(request)},
-            url='/tasks/send_confirmation_email'
-        )
-        return self._createConferenceObject(request)
+                # preload necessary data 
+        return self._createConferenceObject( request)
 
 
     @endpoints.method(CONF_POST_REQUEST, ConferenceForm,
@@ -583,8 +539,10 @@ class ConferenceApi(remote.Service):
 
         if data['startDate']:
             data['startDate'] = datetime.strptime(data['startDate'][:10], "%Y-%m-%d").date()
+        if not data['startDate']:
+            raise endpoints.BadRequestException("Session 'start date' field required")
         if data['startTime']:
-            data['startTime'] = datetime.strptime(data['startTime'], "%H:%M").time()
+            data['startTime'] = datetime.strptime(data['startTime'][:10], "%H:%M").time()
         if not data['startTime']:
             raise endpoints.BadRequestException("Session 'start time' field required")
         if not data['session_name']:
@@ -733,7 +691,7 @@ class ConferenceApi(remote.Service):
     def getConferencesToAttend(self, request):
         """Get list of conferences that user has registered for."""
         prof = self._getProfileFromUser() # get user Profile
-        conf_keys = [ndb.Key(urlsafe=wsck) for wsck in prof.conferenceKeysToAttend]
+        conf_keys = [ndb.Key(urlsafe=wsck) for wsck in prof.sessionWishlist]
         conferences = ndb.get_multi(conf_keys)
 
         # get organizers
@@ -878,7 +836,7 @@ class ConferenceApi(remote.Service):
     def _cacheSpeaker(speakerKey, conferenceKey):
         """Store main speaker in memcache."""
         #set speaker key and conference key. Query sessions with conference key. If sessions > 1, get speaker key that fits that criteria and set as speaker. 
-        speakerKey = speakerKey
+        speakerKey = ndb.Key(urlsafe=speakerKey)
         confKey = ndb.Key(urlsafe=conferenceKey)
         query = Session.query(ancestor=confKey)
         sessions = query.filter(Session.speakerKey == speakerKey)
@@ -891,6 +849,7 @@ class ConferenceApi(remote.Service):
             speakerMsg = '%s %s' % (
                 'The featured speaker for this conference is: ', speaker.speakerName, 'He is speaking in sessions:', session_names)
             memcache.set(MEMCACHE_SPEAKER_KEY, speakerMsg)
+        return cacheSpeaker
 
 
     @endpoints.method(message_types.VoidMessage, 

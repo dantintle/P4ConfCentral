@@ -40,7 +40,7 @@ Files:
 Session object, many properties here set as strings as the data shouldn't be too long. Start date and time have properties reflecting their values. Duration, while keeping track of time, uses an integer. More on that below.
 - session_name: String property to store session name.
 - highlights: String property to store brief session description.
-- duration: Integer property to store duration of session. Storing as number makes it possible to sort/compare by durations.
+- duration: Integer property to store duration of session in minutes. Storing as number makes it possible to sort/compare by durations.
 - typeOfSession: String property to store session type.
 - startDate: Date property to store session start date.
 - startTime: Time property to store session start time.

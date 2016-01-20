@@ -38,8 +38,7 @@ class ProfileForm(messages.Message):
     displayName = messages.StringField(1)
     mainEmail = messages.StringField(2)
     teeShirtSize = messages.EnumField('TeeShirtSize', 3)
-    conferenceKeysToAttend = messages.StringField(4, repeated=True)
-    sessionWishlist = messages.StringField(5, repeated = True)
+    sessionWishlist = messages.StringField(4, repeated = True)
 
 class BooleanMessage(messages.Message):
     """BooleanMessage-- outbound Boolean value message"""
@@ -116,7 +115,7 @@ class Session(ndb.Model):
     speakerKey = ndb.StringProperty()
     duration = ndb.IntegerProperty()
     typeOfSession = ndb.StringProperty()
-    startDate = ndb.DateProperty()
+    startDate = ndb.DateProperty(required = True)
     startTime = ndb.TimeProperty(required=True)
 
 class SessionForm(messages.Message):
